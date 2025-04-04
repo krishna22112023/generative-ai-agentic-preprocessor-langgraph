@@ -48,3 +48,5 @@ class Settings(BaseSettings, Info):
     MINIO_SECRET_KEY: str
     BUCKET_NAME: str
 
+    #Image quality assessment (IQA) tool settings
+    IQA_MODEL_NAME: str = "gpt-4o-mini"

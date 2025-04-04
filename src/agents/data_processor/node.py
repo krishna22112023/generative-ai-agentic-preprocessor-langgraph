@@ -14,8 +14,10 @@ root = pyprojroot.find_root(pyprojroot.has_dir("config"))
 sys.path.append(str(root))
 
 from src.agents.data_processor.state import State
-from src.services.tool.minIO import tools
+from src.services.tool.minIO import minio_tools
+from src.services.tool.IQA import iqa_tools
 
+tools = minio_tools + iqa_tools
 tools_by_name = {tool.name: tool for tool in tools}
 
 class DataProcessorNode:
@@ -66,11 +68,11 @@ class DataProcessorNode:
     async def tool_node_mcp(self, state: State, writer: StreamWriter):
         tools = await get_client()
         tools_by_name = {tool.name: tool for tool in tools}
-        writer({'status': self.gen_waiting_reply()})
         outputs = []
         for tool_call in state["messages"][-1].tool_calls:
+            args = tool_call["args"]
             tool = tools_by_name[tool_call["name"]]
-            observation = await tool.ainvoke(tool_call["args"])
+            observation = await tool.ainvoke(args)
             outputs.append(
                 ToolMessage(
                     content=json.dumps(observation),

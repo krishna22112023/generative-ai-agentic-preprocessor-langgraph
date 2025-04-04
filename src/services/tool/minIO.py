@@ -37,7 +37,7 @@ def delete_objects(prefix: str) -> bool:
     """
     return delete.delete_object(prefix)
 
-tools = [
+minio_tools = [
     list_objects,
     download_objects,
     upload_objects,
