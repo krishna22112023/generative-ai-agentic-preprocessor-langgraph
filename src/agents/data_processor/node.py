@@ -16,8 +16,9 @@ sys.path.append(str(root))
 from src.agents.data_processor.state import State
 from src.services.tool.minIO import minio_tools
 from src.services.tool.IQA import iqa_tools
+from src.services.tool.IR import ir_tools
 
-tools = minio_tools + iqa_tools
+tools = minio_tools + iqa_tools + ir_tools
 tools_by_name = {tool.name: tool for tool in tools}
 
 class DataProcessorNode:

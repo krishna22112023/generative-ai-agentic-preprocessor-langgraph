@@ -38,7 +38,7 @@ class Settings(BaseSettings, Info):
     LANGCHAIN_PROJECT: Optional[str] = None
 
     #MINIO tool settings
-    LOCAL_DIR: str = 'data/minio'
+    LOCAL_DIR: str = 'data'
     ALLOW_READ: bool = True
     ALLOW_WRITE: bool = True
     ALLOW_DELETE: bool = True

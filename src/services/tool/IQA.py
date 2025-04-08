@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field
 from typing import List
 
 import sys
+from PIL import Image
+import io
 import os
 import base64
 import glob
@@ -29,18 +31,25 @@ class Degradation(BaseModel):
 class IQAResponse(BaseModel):
     items: List[Degradation]
 
+def resize_image(image_path, max_size=(512, 512)):
+    with Image.open(image_path) as img:
+        img.thumbnail(max_size)
+        buf = io.BytesIO()
+        img.save(buf, format='JPEG')
+        return buf.getvalue()
+
 @tool()
 def image_assessment(prefix: str) -> str:
     """
     Assess the quality of images in a directory using a pre-trained model based on 7 degredations that include 
     noise, motion blur, defocus blur, haze, rain, dark, and jpeg compression artifact and classify them into 5 severity levels 
     namely "very low", "low", "medium", "high", and "very high".
-    Infer the prefix from the user's request.
+    Infer the prefix from the user's request. The user can either specify prefix of files in minIO or local file system.
     """
     llm = get_chatgpt_model(settings.IQA_MODEL_NAME)
 
     # Inject the output parser’s instructions into your system prompt.
-    fp_prompt = f"{root}/src/services/tool/prompts/IQA.md"
+    fp_prompt = f"{root}/src/prompts/IQA.md"
     with open(fp_prompt, 'r', encoding='utf-8') as f:
         prompt_template = f.read()
 
@@ -58,17 +67,17 @@ def image_assessment(prefix: str) -> str:
     logger.info({'status': f"Starting Image Quality Assessment on {total} images"})
 
     for file in image_files:
-        with open(file, 'rb') as img_file:
-            encoded_data = base64.b64encode(img_file.read()).decode('utf-8') 
+        image_data = resize_image(file)
+        encoded_data = base64.b64encode(image_data).decode('utf-8')
         message = [{"role": "user", "content": f"data:image/jpeg;base64,{encoded_data}"}]
         response = chain.invoke({"messages": message})
         try:
             parsed = response.model_dump()["items"]
             # Filter out degradations with severity "high" or "very high"
             #filtered = [item for item in parsed if item.get("severity") in ("high", "very high")]
-            results[Path(file).name] = parsed
+            results[f"{settings.LOCAL_DIR}/{prefix}/{Path(file).name}"] = parsed
         except json.JSONDecodeError as e:
-            results[Path(file).name] = {"error": "JSON decode error", "detail": str(e)}
+            results[f"{settings.LOCAL_DIR}/{prefix}/{Path(file).name}"] = {"error": "JSON decode error", "detail": str(e)}
         
     logger.info({'status': f"Summarizing results on {total} images"})
             
